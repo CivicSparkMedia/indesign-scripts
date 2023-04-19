@@ -12,7 +12,9 @@ var main = function() {
     var smallFileOutfol = Folder(Folder.temp + "/small_pdfs");
     if (!smallFileOutfol.exists) { smallFileOutfol.create(); } //user canceled
     //get all indd files
-    var fs = fol.getFiles("*.indd");
+    var tempfs = fol.getFiles("*.indd");
+    var fs = getFilesToProcess(tempfs);
+
     fs.sort(function(a,b) {
         var rx = /pg \d+/gi;
         var aname = decodeURI(a.name); //nm of files
@@ -63,6 +65,18 @@ var main = function() {
     alert("Done!");
 }
 
+//check an array of files for "pg #" in filename and return all that match
+var getFilesToProcess = function(arr) {
+    var a = [];
+    var i = arr.length;
+    while(i--) {
+        if (/pg \d/gi.test(decodeURI(arr[i].name))) {
+            a.push(arr[i]);
+        }
+    }
+    return a;
+}
+
 //func to delete all small pdf files
 var cleanoutfol = function(fol) {
     var fs = fol.getFiles();
@@ -81,7 +95,7 @@ var processEpub = function(f, outfol, smallFileOutfol, preset){
     var doc = app.open(f);
     //sorts the pdf array by pg #
     fs.sort(function(a,b) {
-        var rx = /pg \d+/gi;
+        var rx = /\d+/gi;
         var aname = decodeURI(a.name); //nm of files
         var bname = decodeURI(b.name);
         var am = aname.match(rx); //successful rx test
@@ -92,9 +106,8 @@ var processEpub = function(f, outfol, smallFileOutfol, preset){
         if (!bm) {
             return 1;
         }
-        //assumes that there is a space between pg and #
-        var anum = Number(am[0].split(" ")[1]);
-        var bnum = Number(bm[0].split(" ")[1]);
+        var anum = Number(am[0]);
+        var bnum = Number(bm[0]);
         return anum > bnum;
     });
     var i = 0;
@@ -108,6 +121,7 @@ var processEpub = function(f, outfol, smallFileOutfol, preset){
 
         wi.show();
     for (i; i < n; i++) {
+        //skip pdfs that don't have the "pg #" naming
         wi.pbar.value++;
         //add a page after first page in doc, make it blank with no master/parent page
         p = doc.pages.add();
@@ -122,12 +136,24 @@ var processEpub = function(f, outfol, smallFileOutfol, preset){
         wi.close();
         wi.destroy()
     } catch(e){}
-    //get the date for filename
     var d = new Date();
+    var dow = d.getDay(); //day of week; 0=Sun, 6=Sat, 3=Wed
+    var diff = Math.abs(3 - dow);
+    if (dow > 3)  {
+        diff = (7 - dow) + 3;
+    }
+    //set the date to next wednesday
+    d.setDate(d.getDate() + diff);
     var yyyy = d.getFullYear();
     var mm = ("0" + (d.getMonth() + 1)).slice(-2);
-    var dd = ("0" + d.getDate()).slice(-2);
+    var dd = ("0" + (d.getDate())).slice(-2);  
+    //get the date for filename
+    
     var fname = yyyy + mm + dd + "-FULL-NEWSPAPER.pdf";
+    var currPrefs = app.pdfExportPreferences;
+    with (currPrefs) {
+        pageRange = PageRange.ALL_PAGES;
+    }
     //remove the first page since it was an original page, then export
     doc.pages[0].remove();
     doc.exportFile(ExportFormat.PDF_TYPE, File(outfol + "/" + fname), false, preset);
@@ -136,16 +162,55 @@ var processEpub = function(f, outfol, smallFileOutfol, preset){
 
 //main page processing file
 var processFile = function(f, preset, outfol, smallFileOutfol, smallExport) {
+    var d = new Date();
+    var dow = d.getDay(); //day of week; 0=Sun, 6=Sat, 3=Wed
+    var diff = Math.abs(3 - dow);
+    if (dow > 3)  {
+        diff = (7 - dow) + 3;
+    }
+    //set the date to next wednesday
+    d.setDate(d.getDate() + diff);
+    var yyyy = d.getFullYear();
+    var mm = ("0" + (d.getMonth() + 1)).slice(-2);
+    var dd = ("0" + (d.getDate())).slice(-2);  
+    var dateStr = mm + "_" + dd + "_" + yyyy;
+    //try to get the pub code by matching first three capital letters in filename
+    try {
+        var pubcode = decodeURI(f.name).match(/[A-Z]{3}/g)[0];
+    } catch(e) {
+        alert("Could not get pub code in filename: " + decodeURI(f.name));
+        var pubcode = "XXX"; 
+    }
+    //try to get the page number by matching "pg #" naming
+    try {
+        var pageNum = decodeURI(f.name).match(/pg \d+/gi)[0].replace(/pg /gi,"");
+    } catch(e) {
+        alert("Could not get page number in filename: " + decodeURI(f.name));
+        var pageNum = "00"; 
+    }
+    //include leading 0 if needed
+    pageNum = ("0" + pageNum).slice(-2);
+    var colorStr = "";
+    if (/color/gi.test(f.name)) {
+        colorStr = "_COLOR";
+    }
     try {
         var doc = app.open(f);
     } catch(e) {
         alert("Couldn't open doc " + decodeURI(f.name) +  ". " + e);
     }
-    //replace indd ext with pdf, then do export
-    var fname = decodeURI(f.name).replace(/\.indd$/gi,".pdf");
+    //generate the filename by putting all the pieces together
+    var fname = pubcode + "_" + pageNum + "_" + dateStr + colorStr + ".pdf";
+    //do export to both small and large pdf
     doc.exportFile(ExportFormat.PDF_TYPE, File(outfol + "/" + fname), false, preset);
     doc.exportFile(ExportFormat.PDF_TYPE, File(smallFileOutfol + "/" + fname), false, smallExport);
     doc.close(SaveOptions.NO);
 }
 
+var unitTest = function() {
+    var d = new Date();
+    var wed = Math.abs(3 - d.getDay());
+    alert(d.getDay());
+}
+//unitTest();
 main();
