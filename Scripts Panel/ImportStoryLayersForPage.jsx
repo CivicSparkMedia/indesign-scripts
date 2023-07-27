@@ -40,6 +40,10 @@ var processData = function(json, page, doc, imgFol) {
         alert("Could not get # of stories from 'count' field. Check data and try again.");
         return;
     }
+    if (0 === count) {
+        alert("No stories ready for placement were found for this page. All done!");
+        return;
+    }
     var grouptemplate = page.parent.groups.itemByName("story_group");
     if (!grouptemplate.isValid) {
         alert("Could not get 'story_group' group on page's spread. Exiting.");
@@ -248,8 +252,9 @@ var mac = function() {
     var respF = wwnEnv.apiUrl + '?page=';
     var respB = "&key=" + wwnEnv.apiKey;
 
-    var imgFol = Folder.selectDialog("Choose the image folder");
-    if (!imgFol) { return; }
+    // var imgFol = Folder.selectDialog("Choose the image folder");
+    // if (!imgFol) { return; }
+    var imgFol = '/tmp/';
     var doc = app.activeDocument;
     var page = doc.pages[0];
     var pageNum = parsePageNum(decodeURI(doc.name));
