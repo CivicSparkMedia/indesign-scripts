@@ -40,6 +40,10 @@ var processData = function(json, page, doc, imgFol) {
         alert("Could not get # of stories from 'count' field. Check data and try again.");
         return;
     }
+    if (0 === count) {
+        alert("No stories ready for placement were found for this page. All done!");
+        return;
+    }
     var grouptemplate = page.parent.groups.itemByName("story_group");
     if (!grouptemplate.isValid) {
         alert("Could not get 'story_group' group on page's spread. Exiting.");
