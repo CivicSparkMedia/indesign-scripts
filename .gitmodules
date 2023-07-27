@@ -1,0 +1,3 @@
+[submodule "Scripts Panel/JSON-js"]
+	path = Scripts Panel/JSON-js
+	url = https://github.com/douglascrockford/JSON-js
