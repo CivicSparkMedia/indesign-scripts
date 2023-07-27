@@ -248,8 +248,9 @@ var mac = function() {
     var respF = wwnEnv.apiUrl + '?page=';
     var respB = "&key=" + wwnEnv.apiKey;
 
-    var imgFol = Folder.selectDialog("Choose the image folder");
-    if (!imgFol) { return; }
+    // var imgFol = Folder.selectDialog("Choose the image folder");
+    // if (!imgFol) { return; }
+    var imgFol = '/tmp/';
     var doc = app.activeDocument;
     var page = doc.pages[0];
     var pageNum = parsePageNum(decodeURI(doc.name));
