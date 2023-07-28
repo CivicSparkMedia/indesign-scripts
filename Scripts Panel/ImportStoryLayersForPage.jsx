@@ -104,7 +104,7 @@ var findReplace = function(story) {
     
     myChangeGrep(
         {findWhat: findWhats[2]}, 
-        {changeTo: "n", appliedCharacterStyle: "Bullet 11 pt."},
+        {changeTo: "n~>", appliedCharacterStyle: "Bullet 11 pt."},
         story
     );
 
