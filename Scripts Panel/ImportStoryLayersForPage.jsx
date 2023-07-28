@@ -75,9 +75,9 @@ Do this for both body copy and cutlines
  */
 var findReplace = function(story) {
     var findWhats = [
-        "\\*\\*([^(\\*\\*)|\\r]+)\\*\\*",   // 0. Bold
+        "\\*\\*([^**]+)\\*\\*",   // 0. Bold
         "_([^_|\\r]+)_",    // 1. Italics
-        "^\\\\?\\*(?<! )",  // 2. Bullet points
+        "^\\\\?*(?<! )",  // 2. Bullet points
         "\\n+"  // Line breaks
     ];
    
@@ -158,13 +158,13 @@ var processStory = function(layer, obj, grouptemplate, bystyle, imgFol) {
     }
     //do img
     if (obj.image_url) {
-        //debug
         try {
-            var img = imgFol.getFiles("*.jpg")[0];
+            var img = getMacImage(obj.image_url, imgFol);
+            //var img = imgFol.getFiles("*.jpg")[0];
             imgFrame.place(img);
             imgFrame.fit(FitOptions.FRAME_TO_CONTENT);
         } catch(e) {
-            alert("Could not get image: " + e);
+            alert("Could not get image from " + obj.image_url + ". " + e);
         }
     }
     else {
@@ -272,8 +272,10 @@ var mac = function() {
     processData(json, page, doc, imgFol);
 }
 
-// var getMacImage = function(exporturl, assetFolderPath, fileName) {
+// var getMacImage = function(exporturl, assetFolderPath) {
+
 //     try {
+//         var fileName = exporturl.slice(exporturl.lastIndexOf("/") + 1);
 //         var ff = File(assetFolderPath + "/" + fileName);
 //         if (!ff.exists) {
 //             app.system("curl -L -o " + ff.fsName + " " + exporturl);
