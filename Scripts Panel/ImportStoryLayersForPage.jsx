@@ -50,6 +50,7 @@ var processData = function(json, page, doc, imgFol) {
         return;
     }
     var i = 0;
+    var c = 0; //counter to account for shifting of duplicated stories
     var storyLay, o, ln;
     for (i; i < count; i++) {
         o = json.data[i];
@@ -64,7 +65,8 @@ var processData = function(json, page, doc, imgFol) {
         if (!storyLay.isValid) {
             storyLay = doc.layers.add({name: ln});
             //only process stories that did not already have a layer
-            processStory(storyLay, o, grouptemplate, bystyle, imgFol);
+            processStory(storyLay, o, grouptemplate, bystyle, imgFol, c);
+            c++;
         }
     }
 }
@@ -77,7 +79,7 @@ var findReplace = function(story) {
     var findWhats = [
         "\\*\\*([^**]+)\\*\\*",   // 0. Bold
         "_([^_|\\r]+)_",    // 1. Italics
-        "^\\\\?*(?<! )",  // 2. Bullet points
+        "^- ",  // 2. Bullet points
         "\\n+"  // Line breaks
     ];
    
@@ -113,8 +115,11 @@ var findReplace = function(story) {
 /*
 For a valid story, fill out the contents of the InDesign layer
  */
-var processStory = function(layer, obj, grouptemplate, bystyle, imgFol) {
+var processStory = function(layer, obj, grouptemplate, bystyle, imgFol, c) {
     var g = grouptemplate.duplicate(layer);
+    try {
+        g.move(undefined, [(c * -1) + "pica", (c * -1) + "pica"]); //second arg moves relative to current position
+    } catch(e) {} //wrap in try block in case too many stories force object off pasteboard
     var headTf = g.textFrames.itemByName("headline");
     var subTf = g.textFrames.itemByName("subhead");
     var bodyTf = g.textFrames.itemByName("body");
