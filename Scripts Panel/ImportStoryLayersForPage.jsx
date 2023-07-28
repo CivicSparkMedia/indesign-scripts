@@ -75,7 +75,7 @@ Do this for both body copy and cutlines
  */
 var findReplace = function(story) {
     var findWhats = [
-        "\\*\\*([^(\\*\\*)|\\r]+)\\*\\*",   // 0. Bold
+        "\\*\\*([^(\\*\\*)|\\r])+\\*\\*",   // 0. Bold
         "_([^_|\\r]+)_",    // 1. Italics
         "^\\\\?\\*(?<! )",  // 2. Bullet points
         "\\n+"  // Line breaks
