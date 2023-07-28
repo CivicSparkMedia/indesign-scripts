@@ -79,7 +79,7 @@ var findReplace = function(story) {
     var findWhats = [
         "\\*\\*([^**]+)\\*\\*",   // 0. Bold
         "_([^_|\\r]+)_",    // 1. Italics
-        "^\\\\?*(?<! )",  // 2. Bullet points
+        "^- ",  // 2. Bullet points
         "\\n+"  // Line breaks
     ];
    
