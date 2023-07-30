@@ -2,6 +2,8 @@
 
 Various scripts used with Adobe InDesign at the [Western Wayne News](https://westernwaynenews.com) newspaper to aid in the layout and production of our print publication.
 
+This repository is intended to live at the root of the `Scripts` folder in your InDesign install, e.g. `/Users/alice/Library/Preferences/Adobe InDesign/Version 18.0/en_US/Scripts/`
+
 ## Batch Export PDFs
 
 Given a folder of InDesign files, where each file represents a page of the newspaper using the file naming scheme `WWN pg X [BW|COLOR].indd` (example, `WWN pg 8 BW.indd`), this script generates a variety of PDF files:
@@ -39,7 +41,7 @@ Place the script and the JSON library in the `Scripts Panel` directory, done mos
 
 Add a `wwn-env.js` file in the same directory that follows this format:
 
-```php
+```js
 const wwnEnv = {
 	// Production
 	apiKey: 'my-api-key-here',
