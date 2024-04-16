@@ -1,3 +1,6 @@
+//@include "JSON-js/json2.js"
+//@include "wwn-env.js";
+
 /*
 issue_date: “2023-09-13”
 page_count: 28,
@@ -23,14 +26,15 @@ layout: “Postmaster box”
 
 */
 var main = function() {
-    var tmplt = File.openDialog("Choose the temmplate");
-    if (!tmplt || /indd?t?$/gi.test(tmplt.name)) { //user canceled or file is not indd/t
+    var tmplt = File.openDialog("Choose the template");
+    if (!tmplt) { // || /indd?t?$/gi.test(tmplt.name)) { //user canceled or file is not indd/t
+        throw new Error("Could not open template.");
         return;
     }
     var outfol = Folder.selectDialog("Choose the output folder");
     if (!outfol) { return; } //user canceled
     var currFolder = app.activeScript.parent.absoluteURI;
-    var respF = wwnEnv.apiUrl;
+    var respF = wwnEnv.breakoutApiUrl;
     try {
         var jsonF = getJSONFile(currFolder, respF);
     } catch(e) {
@@ -87,9 +91,11 @@ var processPage = function(pageData, tmplt, outfol, issueDate) {
         doc.close(SaveOptions.NO);
         return;
     }
+
     doc.pages.item(0).appliedMaster = pp;
     overrideMasterItems(doc);
     doc.pages.item(0).name = pageNum;
+
     try {
         populateDate(doc, issueDate);
     } catch(e) {
@@ -124,7 +130,7 @@ var populateDate = function(doc, issueDate) {
 
 //---------------------------------------
 //override all items from parent to first page of doc
-//lock items on paent that you don't want to override
+//lock items on parent that you don't want to override
 var overrideMasterItems = function(doc) {
     var pg = doc.pages.item(0);
     var allItems = pg.appliedMaster.allPageItems;
@@ -142,19 +148,21 @@ var overrideMasterItems = function(doc) {
 //all master spreads should use B as prefix
 //returns a MasterSpread object
 var getParentPage = function(layout, colorOrBw, evenOrOdd, doc, pageNum) {
-    var nm1 = layout + colorOrBw + " " + evenOrOdd;
-    var nm2 = layout + " " + evenOrOdd;
-    var nm3 = layout;
-    var ms = doc.masterSpreads.itemByName("B-" + nm1);
-    if (!ms.isValid) {
-        ms = doc.masterSpreads.itemByName("B-" + nm2);
-        if (!ms.isValid) {
-            ms = doc.masterSpreads.itemByName("B-" + nm3);
-            if (!ms.isValid)  {
-                throw new Error("Could not get master spread name for: " + layout + ">>" + evenOrOdd + ">>" + colorOrBw);
-            }
-        }
-    }
+    // var nm1 = layout + colorOrBw + " " + evenOrOdd;
+    // var nm2 = layout + " " + evenOrOdd;
+    // var nm3 = layout;
+    // var ms = doc.masterSpreads.itemByName("B-" + nm1);
+    // if (!ms.isValid) {
+    //     ms = doc.masterSpreads.itemByName("B-" + nm2);
+    //     if (!ms.isValid) {
+    //         ms = doc.masterSpreads.itemByName("B-" + nm3);
+    //         if (!ms.isValid)  {
+    //             throw new Error("Could not get master spread name for: " + layout + ">>" + evenOrOdd + ">>" + colorOrBw);
+    //         }
+    //     }
+    // }
+    ms = doc.masterSpreads.itemByName("C-Odd");
+
     return ms;
 
 }
@@ -182,7 +190,7 @@ If needed, can refactor for VBA to handle Windows environment
 */
 var getJSONFile = function(path, exporturl) {
     try {
-        var fileName = "storiesTmp.json";
+        var fileName = "breakoutTmp.json";
         var ff = File(path + "/" + fileName);
         ff.encoding = "UTF-8";
         var curlCommand = "\"curl -L -o '" + ff.fsName + "' " + "'" + exporturl + "'";
