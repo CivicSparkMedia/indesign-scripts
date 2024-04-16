@@ -133,7 +133,7 @@ var processStory = function(layer, obj, grouptemplate, bystyle, imgFol, c) {
         headTf.remove();
     }
     //do subhead
-    if (obj.subhead) {
+    if (obj.subhead && subTf) {
         subTf.parentStory.contents = obj.subhead;
     }
     else {
