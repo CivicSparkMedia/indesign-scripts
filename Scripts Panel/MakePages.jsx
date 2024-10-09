@@ -4,7 +4,7 @@
 /*
 issue_date: “2023-09-13”
 page_count: 28,
-pages: 
+pages:
 1
 color: true
 layout: “Front”
@@ -27,7 +27,7 @@ layout: “Postmaster box”
 */
 var main = function() {
     var tmplt = File.openDialog("Choose the template");
-    if (!tmplt) { // || /indd?t?$/gi.test(tmplt.name)) { //user canceled or file is not indd/t
+    if (!tmplt || !/indd?t?$/gi.test(tmplt.name)) { //user canceled or file is not indd/t
         throw new Error("Could not open template.");
         return;
     }
@@ -94,7 +94,7 @@ var processPage = function(pageData, tmplt, outfol, issueDate) {
 
     doc.pages.item(0).appliedMaster = pp;
     overrideMasterItems(doc);
-    doc.pages.item(0).name = pageNum;
+    doc.pages.item(0).appliedSection.pageNumberStart = pageNum
 
     try {
         populateDate(doc, issueDate);
@@ -173,11 +173,15 @@ var readJSONFile = function(f) {
     f.open("r");
     var data = f.read();
     f.close();
-    if (data == "") { 
+    if (data == "") {
         alert("No such order found. Try again.");
-        return null; 
+        return null;
     }
-    data = JSON.parse(data);
+    try {
+        data = JSON.parse(data);
+    } catch(e) {
+        alert("Error parsing JSON data " + data + ". " + e);
+    }
     f.remove(); //delete the json when we're done with it
     //printObj(data);
     return data;
