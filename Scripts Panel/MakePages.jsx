@@ -2,37 +2,14 @@
 //@include "wwn-env.js";
 // noinspection ES6ConvertVarToLetConst,SpellCheckingInspection
 
-/*
-issue_date: “2023-09-13”
-page_count: 28,
-pages:
-1
-color: true
-layout: “Front”
-2
-color: true
-layout: “Even”
-…
-5
-color: false
-layout: “Postmaster box”
-
-
-
-*/
-/*
-//@include "JSON-js/json2.js"
-//@include "wwn-env.js";
-// noinspection ES6ConvertVarToLetConst,SpellCheckingInspection
-
-*/
 var main = function() {
-    var tmplt = File.openDialog("Choose the temmplate");
-    if (!tmplt || !/indd?t?$/gi.test(tmplt.name)) { //user canceled or file is not indd/t
-        return; //fixed to add a falsey boolean to the regex test - 072924
+    var tmplt = File.openDialog("Choose the template");
+    if (!tmplt || !/indd?t?$/gi.test(tmplt.name)) {
+        return;
     }
     var outfol = Folder.selectDialog("Choose the output folder");
-    if (!outfol) { return; } //user canceled
+    if (!outfol) { return; }
+
     var currFolder = app.activeScript.parent.absoluteURI;
     var respF = wwnEnv.breakoutApiUrl + "?key=" + wwnEnv.apiKey;
 
@@ -50,9 +27,6 @@ var main = function() {
         return;
     }
 }
-
-//----------------------------------------
-
 
 var createPages = function(json, tmplt, outfol) {
     var issueDate = json.issue_date;
@@ -77,109 +51,129 @@ var processPage = function(pageData, tmplt, outfol, issueDate) {
     } catch(e) {
         throw new Error("Could not open document from " + decodeURI(tmplt.name) + ". " + e);
     }
+
     var pageNum = pageData.pageNum;
-    var colorOrBw = pageData.color ? "COLOR" : "BW";
+    var colorType = pageData.color ? "COLOR" : "BW";
     var evenOrOdd = pageNum % 2 == 0 ? "Even" : "Odd";
-    var fname = "WWN pg " + pageNum + " " + colorOrBw;
+    var fname = "WWN pg " + pageNum + " " + colorType;
+
+    // Use layout from JSON directly - no fallbacks
     var layout = pageData.layout;
-    if (typeof(layout) == "undefined") {
-        layout = evenOrOdd;
+    if (!layout) {
+        throw new Error("No layout specified in JSON for page " + pageNum);
     }
+
     try {
-        var pp = getParentPage(layout, colorOrBw, evenOrOdd, doc);
+        var masterSpread = getMasterSpread(doc, layout, pageData);
     } catch(e) {
-        alert(e);
+        alert("Master spread error for page " + pageNum + ": " + e);
         doc.close(SaveOptions.NO);
         return;
     }
-    doc.pages.item(0).appliedMaster = pp;
-    overrideMasterItems(doc);
+
+    doc.pages.item(0).appliedMaster = masterSpread;
     doc.pages.item(0).appliedSection.continueNumbering = false;
     doc.pages.item(0).appliedSection.pageNumberStart = pageNum;
+    overrideMasterItems(doc);
 
     try {
         populateDate(doc, issueDate);
     } catch(e) {
-        alert(e);
+        alert("Date population error for page " + pageNum + ": " + e);
     }
+
     doc.save(File(outfol + "/" + fname + ".indd"));
     doc.close(SaveOptions.NO);
 }
 
-//--------
-//take the json issue date, parse it, and place in document's Date Text Variable instance
+/**
+ * Find the master spread that exactly matches the layout from JSON
+ */
+var getMasterSpread = function(doc, layout, pageData) {
+    var masterSpreads = doc.masterSpreads;
+
+    // Search for exact match of layout name within master spread names
+    for (var i = 0; i < masterSpreads.length; i++) {
+        var spreadName = masterSpreads[i].name;
+
+        // Check if master spread name contains the layout
+        // This handles prefixes like "B-", "C-", "D-", "H-" automatically
+        if (spreadName.indexOf(layout) >= 0) {
+            return masterSpreads[i];
+        }
+    }
+
+    // If no match found, list available masters for debugging
+    var availableMasters = [];
+    for (var i = 0; i < masterSpreads.length; i++) {
+        availableMasters.push(masterSpreads[i].name);
+    }
+
+    throw new Error("No master spread found for layout '" + layout + "'. " +
+        "Available masters: " + availableMasters.join(", "));
+}
+
 var populateDate = function(doc, issueDate) {
     var split = issueDate.split("-");
     var months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
     try {
         var ms = months[parseInt(split[1],10)-1];
-    } catch(e) {
-        throw new Error("Could not get month string from " + issueDate);
-    }
-    try {
         var ds = parseInt(split[2],10).toString();
-    } catch(e) {
-        throw new Error("Could not get date string from " + issueDate);
-    }
+        var dateString = ms + " " + ds + ", " + split[0];
 
-    var dateString = ms + " " + ds + ", " + split[0];
-
-    try {
         var dateVar = doc.textVariables.itemByName("Issue Date");
         if (!dateVar.isValid) {
             throw new Error("Text variable 'Issue Date' does not exist in document");
         }
 
-        // Check if it's a custom text variable
         if (dateVar.variableType === VariableTypes.CUSTOM_TEXT_TYPE) {
             dateVar.variableOptions.contents = dateString;
-            // dateVar.customTextVariablePreferences.contents = ms + " " + ds + ", " + split[0];
         } else {
-            throw new Error("Text variable 'Date' is not a custom text variable type");
+            throw new Error("Text variable 'Issue Date' is not a custom text variable type");
         }
     } catch(e) {
-        throw new Error("Could not set text variable Date: " + e);
+        throw new Error("Could not set text variable: " + e);
     }
 }
 
-//---------------------------------------
-//override all items from parent to first page of doc
-//lock items on paent that you don't want to override
 var overrideMasterItems = function(doc) {
     var pg = doc.pages.item(0);
     var allItems = pg.appliedMaster.allPageItems;
-    var n = allItems.length;
-    while(n--) {
-        try { allItems.override(pg) }
-        catch(e) {}
+
+    // Store original order information
+    var itemOrder = [];
+    for (var i = 0; i < allItems.length; i++) {
+        itemOrder.push({
+            item: allItems[i],
+            index: i
+        });
+    }
+
+    // Override items
+    for (var i = 0; i < itemOrder.length; i++) {
+        try {
+            var item = itemOrder[i].item;
+            if (!item.locked && item.constructor.name === "TextFrame") {
+                item.override(pg);
+            }
+        } catch(e) {
+            // Ignore items that can't be overridden
+        }
+    }
+
+    // Restore order by sending items to back in reverse order
+    for (var i = itemOrder.length - 1; i >= 0; i--) {
+        try {
+            if (!itemOrder[i].item.locked) {
+                itemOrder[i].item.sendToBack();
+            }
+        } catch(e) {
+            // Ignore
+        }
     }
 }
 
-//-------------------------
-
-//colorOrBw has a space in front: " COLOR" or " BW";
-//we try three different vaiations of the name
-//all master spreads should use B as prefix
-//returns a MasterSpread object
-var getParentPage = function(layout, colorOrBw, evenOrOdd, doc, pageNum) {
-    var nm1 = colorOrBw + layout + " " + evenOrOdd;
-    var nm2 = layout + " " + evenOrOdd;
-    var nm3 = layout;
-    var pps = doc.masterSpreads;
-    var i = pps.length;
-    var ppn;
-    while(i--) {
-        ppn = pps[i].name;
-        if (ppn.indexOf(nm1) >= 0) { return pps[i]; }
-        if (ppn.indexOf(nm2) >= 0) { return pps[i]; }
-        if (ppn.indexOf(nm3) >= 0) { return pps[i]; }
-    }
-    throw new Error("Could not get master spread name for: " + layout + ">>" + evenOrOdd + ">>" + colorOrBw);
-
-}
-//-------------------------
-//from prev script
 var readJSONFile = function(f) {
     f.encoding = "UTF-8";
     f.open("r");
@@ -194,34 +188,22 @@ var readJSONFile = function(f) {
     } catch(e) {
         alert("Error parsing JSON data " + data + ". " + e);
     }
-    f.remove(); //delete the json when we're done with it
-    //printObj(data);
+    f.remove();
     return data;
 };
 
-/*
-Uses curl to download a JSON url to designated path
-Requires that we are on Mac (using Applescript for curl call)
-If needed, can refactor for VBA to handle Windows environment
-*/
 var getJSONFile = function(path, exporturl) {
     try {
-        var fileName = "storiesTmp.json";
+        var fileName = "breakoutTmp.json";
         var ff = File(path + "/" + fileName);
         ff.encoding = "UTF-8";
         var curlCommand = "\"curl -L --insecure -o '" + ff.fsName + "' " + "'" + exporturl + "'";
         var asCode = 'do shell script ' + curlCommand + '"';
         app.doScript(asCode, ScriptLanguage.APPLESCRIPT_LANGUAGE);
         return ff;
-    }
-    catch(e) {
+    } catch(e) {
         throw new Error("Error downloading json from " + exporturl + ". " + e);
     }
 };
 
-var unitTest = function() {
-    alert(new Date("2023-09-13").toDateString());
-}
-
-//unitTest();
 main();
