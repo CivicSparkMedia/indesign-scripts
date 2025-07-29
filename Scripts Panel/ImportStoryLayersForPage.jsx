@@ -44,11 +44,19 @@ var processData = function(json, page, doc, imgFol) {
         alert("No stories ready for placement were found for this page. All done!");
         return;
     }
-    var grouptemplate = page.parent.groups.itemByName("story_group");
-    if (!grouptemplate.isValid) {
-        alert("Could not get 'story_group' group on page's spread. Exiting.");
+
+    var templateLayer = doc.layers.itemByName("storytemplate");
+    if (!templateLayer.isValid) {
+        alert("Could not find 'storytemplate' layer in document. Exiting.");
         return;
     }
+
+    var grouptemplate = templateLayer.groups.itemByName("story_group");
+    if (!grouptemplate.isValid) {
+        alert("Could not get 'story_group' group in 'storytemplate' layer. Exiting.");
+        return;
+    }
+
     var i = 0;
     var c = 0; //counter to account for shifting of duplicated stories
     var storyLay, o, ln;
@@ -133,7 +141,7 @@ var processStory = function(layer, obj, grouptemplate, bystyle, imgFol, c) {
         headTf.remove();
     }
     //do subhead
-    if (obj.subhead) {
+    if (obj.subhead && subTf) {
         subTf.parentStory.contents = obj.subhead;
     }
     else {
