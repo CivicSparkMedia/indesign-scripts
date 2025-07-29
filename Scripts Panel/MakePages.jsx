@@ -78,9 +78,9 @@ var processPage = function(pageData, tmplt, outfol, issueDate) {
         throw new Error("Could not open document from " + decodeURI(tmplt.name) + ". " + e);
     }
     var pageNum = pageData.pageNum;
-    var colorOrBw = pageData.color ? "COLOR " : "BW ";
+    var colorOrBw = pageData.color ? "COLOR" : "BW";
     var evenOrOdd = pageNum % 2 == 0 ? "Even" : "Odd";
-    var fname = "WWN pg " + pageNum + colorOrBw;
+    var fname = "WWN pg " + pageNum + " " + colorOrBw;
     var layout = pageData.layout;
     if (typeof(layout) == "undefined") {
         layout = evenOrOdd;
@@ -94,22 +94,24 @@ var processPage = function(pageData, tmplt, outfol, issueDate) {
     }
     doc.pages.item(0).appliedMaster = pp;
     overrideMasterItems(doc);
+    doc.pages.item(0).appliedSection.continueNumbering = false;
     doc.pages.item(0).appliedSection.pageNumberStart = pageNum;
+
     try {
         populateDate(doc, issueDate);
     } catch(e) {
         alert(e);
     }
-    doc.save(File(outfol + "/" + fname + ".pdf"));
+    doc.save(File(outfol + "/" + fname + ".indd"));
     doc.close(SaveOptions.NO);
 }
 
 //--------
 //take the json issue date, parse it, and place in document's Date Text Variable instance
-
 var populateDate = function(doc, issueDate) {
     var split = issueDate.split("-");
     var months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
     try {
         var ms = months[parseInt(split[1],10)-1];
     } catch(e) {
@@ -120,8 +122,22 @@ var populateDate = function(doc, issueDate) {
     } catch(e) {
         throw new Error("Could not get date string from " + issueDate);
     }
+
+    var dateString = ms + " " + ds + ", " + split[0];
+
     try {
-        doc.textVariables.itemByName("Date").customTextVariablePreferences.contents = ms + " " + ds + ", " + split[0];
+        var dateVar = doc.textVariables.itemByName("Issue Date");
+        if (!dateVar.isValid) {
+            throw new Error("Text variable 'Issue Date' does not exist in document");
+        }
+
+        // Check if it's a custom text variable
+        if (dateVar.variableType === VariableTypes.CUSTOM_TEXT_TYPE) {
+            dateVar.variableOptions.contents = dateString;
+            // dateVar.customTextVariablePreferences.contents = ms + " " + ds + ", " + split[0];
+        } else {
+            throw new Error("Text variable 'Date' is not a custom text variable type");
+        }
     } catch(e) {
         throw new Error("Could not set text variable Date: " + e);
     }
