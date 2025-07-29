@@ -1,5 +1,6 @@
 //@include "JSON-js/json2.js"
 //@include "wwn-env.js";
+// noinspection ES6ConvertVarToLetConst,SpellCheckingInspection
 
 /*
 issue_date: “2023-09-13”
@@ -43,7 +44,7 @@ var main = function() {
     }
     var json = readJSONFile(jsonF);
     try {
-        createPages(json, tmplt, outfol);
+        createPages(json.data, tmplt, outfol);
     } catch(e) {
         alert(e);
         return;
@@ -77,7 +78,7 @@ var processPage = function(pageData, tmplt, outfol, issueDate) {
         throw new Error("Could not open document from " + decodeURI(tmplt.name) + ". " + e);
     }
     var pageNum = pageData.pageNum;
-    var colorOrBw = pageData.color ? "COLOR " : " BW ";
+    var colorOrBw = pageData.color ? "COLOR " : "BW ";
     var evenOrOdd = pageNum % 2 == 0 ? "Even" : "Odd";
     var fname = "WWN pg " + pageNum + colorOrBw;
     var layout = pageData.layout;
@@ -192,7 +193,7 @@ var getJSONFile = function(path, exporturl) {
         var fileName = "storiesTmp.json";
         var ff = File(path + "/" + fileName);
         ff.encoding = "UTF-8";
-        var curlCommand = "\"curl -L -o '" + ff.fsName + "' " + "'" + exporturl + "'";
+        var curlCommand = "\"curl -L --insecure -o '" + ff.fsName + "' " + "'" + exporturl + "'";
         var asCode = 'do shell script ' + curlCommand + '"';
         app.doScript(asCode, ScriptLanguage.APPLESCRIPT_LANGUAGE);
         return ff;
