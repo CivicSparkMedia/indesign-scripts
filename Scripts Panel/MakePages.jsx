@@ -140,36 +140,41 @@ var populateDate = function(doc, issueDate) {
 var overrideMasterItems = function(doc) {
     var pg = doc.pages.item(0);
     var allItems = pg.appliedMaster.allPageItems;
+    var variablesToReplace = ["Issue Date"]; // Add other variable names here as needed
 
-    // Store original order information
-    var itemOrder = [];
     for (var i = 0; i < allItems.length; i++) {
-        itemOrder.push({
-            item: allItems[i],
-            index: i
-        });
-    }
-
-    // Override items
-    for (var i = 0; i < itemOrder.length; i++) {
         try {
-            var item = itemOrder[i].item;
+            var item = allItems[i];
+
+            // Only check unlocked text frames
             if (!item.locked && item.constructor.name === "TextFrame") {
-                item.override(pg);
-            }
-        } catch(e) {
-            // Ignore items that can't be overridden
-        }
-    }
+                var shouldOverride = false;
 
-    // Restore order by sending items to back in reverse order
-    for (var i = itemOrder.length - 1; i >= 0; i--) {
-        try {
-            if (!itemOrder[i].item.locked) {
-                itemOrder[i].item.sendToBack();
+                try {
+                    var variables = item.textVariableInstances;
+                    for (var v = 0; v < variables.length; v++) {
+                        var varName = variables[v].associatedTextVariable.name;
+
+                        // Check if this text frame contains any variables we want to replace
+                        for (var n = 0; n < variablesToReplace.length; n++) {
+                            if (varName === variablesToReplace[n]) {
+                                shouldOverride = true;
+                                break;
+                            }
+                        }
+                        if (shouldOverride) break;
+                    }
+                } catch(e) {
+                    // If we can't check variables, don't override
+                    shouldOverride = false;
+                }
+
+                if (shouldOverride) {
+                    item.override(pg);
+                }
             }
         } catch(e) {
-            // Ignore
+            // Ignore items that can't be checked or overridden
         }
     }
 }
