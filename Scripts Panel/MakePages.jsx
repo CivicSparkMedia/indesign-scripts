@@ -82,7 +82,7 @@ var getIssueDate = function() {
  */
 var getPageCount = function() {
     while (true) {
-        var countInput = prompt("Enter the number of pages (positive integer only):", "16");
+        var countInput = prompt("Enter the number of pages (positive integer only):", "24");
 
         if (countInput === null) {
             return null; // User canceled
@@ -150,7 +150,7 @@ var processPage = function(pageData, tmplt, outfol, issueDate) {
     overrideMasterItems(doc);
 
     try {
-        populateDate(doc, issueDate);
+        populateDate(doc, issueDate, pageNum);
     } catch(e) {
         alert("Date population error for page " + pageNum + ": " + e);
     }
@@ -212,14 +212,28 @@ var setCustomTextVariable = function(doc, variableName, newContent) {
     }
 }
 
-var populateDate = function(doc, issueDate) {
+var populateDate = function(doc, issueDate, pageNum) {
     var split = issueDate.split("-");
     var months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    var days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
     try {
-        var ms = months[parseInt(split[1],10)-1];
-        var ds = parseInt(split[2],10).toString();
-        var dateString = ms + " " + ds + ", " + split[0];
+        var year = parseInt(split[0], 10);
+        var month = parseInt(split[1], 10);
+        var day = parseInt(split[2], 10);
+
+        var ms = months[month - 1];
+        var ds = day.toString();
+
+        if (pageNum === 1) {
+            // Page 1: No day of week - "August 6, 2025"
+            dateString = ms + " " + ds + ", " + year;
+        } else {
+            // Create Date object to get day of week
+            var dateObj = new Date(year, month - 1, day);
+            var dayOfWeek = days[dateObj.getDay()];
+            var dateString = dayOfWeek + ", " + ms + " " + ds + ", " + year;
+        }
 
         setCustomTextVariable(doc, "Issue Date", dateString);
     } catch(e) {
