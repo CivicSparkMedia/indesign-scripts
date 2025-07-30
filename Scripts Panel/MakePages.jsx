@@ -109,13 +109,33 @@ var createPages = function(json, tmplt, outfol, issueDate, pageCount) {
     }
     var pageArr = json.pages;
     var i = pageArr.length;
+
+    //set dialog mode to never interact so no popups appear when script is executing
+    var currIL = app.scriptPreferences.userInteractionLevel;
+    app.scriptPreferences.userInteractionLevel = UserInteractionLevels.NEVER_INTERACT;
+
+    var wi = new Window('palette');
+    wi.location = [100, 100];
+    wi.text = "Processing";
+    wi.pbar = wi.add('progressbar', undefined, 0, pageCount);
+    wi.pbar.preferredSize.width = 300;
+
+    wi.show();
+
     while(i--) {
         try {
+            wi.pbar.value++;
             processPage(pageArr[i], tmplt, outfol, issueDate);
         } catch(e) {
             alert(e);
         }
     }
+
+    try {
+        wi.close();
+        wi.destroy()
+    } catch(e){}
+    app.scriptPreferences.userInteractionLevel = currIL;
 }
 
 var processPage = function(pageData, tmplt, outfol, issueDate) {
