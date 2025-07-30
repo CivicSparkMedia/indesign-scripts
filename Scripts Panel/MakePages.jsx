@@ -45,8 +45,25 @@ var main = function() {
  * Prompt user for issue date with validation
  */
 var getIssueDate = function() {
+    // Get today's date
+    var today = new Date();
+
+    // Get next Wednesday
+    var daysUntilNextWed = (3 - today.getDay() + 7) % 7;
+    var nextWed = new Date(today);
+    nextWed.setDate(today.getDate() + daysUntilNextWed);
+
+    // Get Wednesday after next (add 7 days to next Wednesday)
+    var wedAfterNext = new Date(nextWed);
+    wedAfterNext.setDate(nextWed.getDate() + 7);
+
+    // Format the date as YYYY-MM-DD
+    var defaultDate = wedAfterNext.getFullYear() + '-' +
+        ("0" + (wedAfterNext.getMonth() + 1)).slice(-2) + '-' +
+        ("0" + wedAfterNext.getDate()).slice(-2);
+
     while (true) {
-        var dateInput = prompt("Enter the issue date (YYYY-MM-DD format):\nExample: 2024-07-29", "2024-01-01");
+        var dateInput = prompt("Enter the issue date (YYYY-MM-DD format):\nExample: " + defaultDate, defaultDate);
 
         if (dateInput === null) {
             return null; // User canceled
