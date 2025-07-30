@@ -10,8 +10,21 @@ var main = function() {
     var outfol = Folder.selectDialog("Choose the output folder");
     if (!outfol) { return; }
 
+    // Get user input for issue date and page count
+    var issueDate = getIssueDate();
+    if (!issueDate) {
+        alert("Issue date is required. Exiting.");
+        return;
+    }
+
+    var pageCount = getPageCount();
+    if (!pageCount) {
+        alert("Page count is required. Exiting.");
+        return;
+    }
+
     var currFolder = app.activeScript.parent.absoluteURI;
-    var respF = wwnEnv.breakoutApiUrl + "?key=" + wwnEnv.apiKey;
+    var respF = wwnEnv.breakoutApiUrl + "?key=" + wwnEnv.apiKey + "&page_count=" + pageCount;
 
     try {
         var jsonF = getJSONFile(currFolder, respF);
@@ -21,18 +34,78 @@ var main = function() {
     }
     var json = readJSONFile(jsonF);
     try {
-        createPages(json.data, tmplt, outfol);
+        createPages(json.data, tmplt, outfol, issueDate, pageCount);
     } catch(e) {
         alert(e);
         return;
     }
 }
 
-var createPages = function(json, tmplt, outfol) {
-    var issueDate = json.issue_date;
-    var pageCount = Number(json.page_count);
+/**
+ * Prompt user for issue date with validation
+ */
+var getIssueDate = function() {
+    while (true) {
+        var dateInput = prompt("Enter the issue date (YYYY-MM-DD format):\nExample: 2024-07-29", "2024-01-01");
+
+        if (dateInput === null) {
+            return null; // User canceled
+        }
+
+        // Validate date format
+        var datePattern = /^\d{4}-\d{2}-\d{2}$/;
+        if (!datePattern.test(dateInput)) {
+            alert("Invalid date format. Please use YYYY-MM-DD format (e.g., 2024-07-29)");
+            continue;
+        }
+
+        // Validate that it's a real date
+        var dateParts = dateInput.split("-");
+        var year = parseInt(dateParts[0], 10);
+        var month = parseInt(dateParts[1], 10);
+        var day = parseInt(dateParts[2], 10);
+
+        var testDate = new Date(year, month - 1, day);
+        if (testDate.getFullYear() !== year ||
+            testDate.getMonth() !== month - 1 ||
+            testDate.getDate() !== day) {
+            alert("Invalid date. Please enter a valid date.");
+            continue;
+        }
+
+        return dateInput;
+    }
+}
+
+/**
+ * Prompt user for page count with validation
+ */
+var getPageCount = function() {
+    while (true) {
+        var countInput = prompt("Enter the number of pages (positive integer only):", "16");
+
+        if (countInput === null) {
+            return null; // User canceled
+        }
+
+        var pageCount = parseInt(countInput, 10);
+
+        // Simple trim function for InDesign compatibility
+        var trimmedInput = countInput.replace(/^\s+|\s+$/g, '');
+
+        if (isNaN(pageCount) || pageCount <= 0 || pageCount.toString() !== trimmedInput) {
+            alert("Invalid page count. Please enter a positive integer (e.g., 16, 24, 32)");
+            continue;
+        }
+
+        return pageCount;
+    }
+}
+
+var createPages = function(json, tmplt, outfol, issueDate, pageCount) {
+    // Use user-provided values instead of JSON values
     if (isNaN(pageCount)) {
-        throw new Error("Could not get page count from json");
+        throw new Error("Invalid page count provided");
     }
     var pageArr = json.pages;
     var i = pageArr.length;
