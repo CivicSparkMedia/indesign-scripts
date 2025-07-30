@@ -82,6 +82,12 @@ var processPage = function(pageData, tmplt, outfol, issueDate) {
         alert("Date population error for page " + pageNum + ": " + e);
     }
 
+    try {
+        processPageNumber(doc, pageNum);
+    } catch(e) {
+        alert("Page number population error for page " + pageNum + ": " + e);
+    }
+
     doc.save(File(outfol + "/" + fname + ".indd"));
     doc.close(SaveOptions.NO);
 }
@@ -113,6 +119,26 @@ var getMasterSpread = function(doc, layout, pageData) {
         "Available masters: " + availableMasters.join(", "));
 }
 
+/**
+ * Helper function to find and replace a custom text variable
+ */
+var setCustomTextVariable = function(doc, variableName, newContent) {
+    try {
+        var textVar = doc.textVariables.itemByName(variableName);
+        if (!textVar.isValid) {
+            throw new Error("Text variable '" + variableName + "' does not exist in document");
+        }
+
+        if (textVar.variableType === VariableTypes.CUSTOM_TEXT_TYPE) {
+            textVar.variableOptions.contents = newContent;
+        } else {
+            throw new Error("Text variable '" + variableName + "' is not a custom text variable type");
+        }
+    } catch(e) {
+        throw new Error("Could not set text variable '" + variableName + "': " + e);
+    }
+}
+
 var populateDate = function(doc, issueDate) {
     var split = issueDate.split("-");
     var months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -122,25 +148,25 @@ var populateDate = function(doc, issueDate) {
         var ds = parseInt(split[2],10).toString();
         var dateString = ms + " " + ds + ", " + split[0];
 
-        var dateVar = doc.textVariables.itemByName("Issue Date");
-        if (!dateVar.isValid) {
-            throw new Error("Text variable 'Issue Date' does not exist in document");
-        }
-
-        if (dateVar.variableType === VariableTypes.CUSTOM_TEXT_TYPE) {
-            dateVar.variableOptions.contents = dateString;
-        } else {
-            throw new Error("Text variable 'Issue Date' is not a custom text variable type");
-        }
+        setCustomTextVariable(doc, "Issue Date", dateString);
     } catch(e) {
-        throw new Error("Could not set text variable: " + e);
+        throw new Error("Could not populate date: " + e);
+    }
+}
+
+var processPageNumber = function(doc, pageNumber) {
+    try {
+        var pageNumString = pageNumber.toString();
+        setCustomTextVariable(doc, "Issue Page", pageNumString);
+    } catch(e) {
+        throw new Error("Could not populate page number: " + e);
     }
 }
 
 var overrideMasterItems = function(doc) {
     var pg = doc.pages.item(0);
     var allItems = pg.appliedMaster.allPageItems;
-    var variablesToReplace = ["Issue Date"]; // Add other variable names here as needed
+    var variablesToReplace = ["Issue Date", "Issue Page"]; // Add other variable names here as needed
 
     for (var i = 0; i < allItems.length; i++) {
         try {
