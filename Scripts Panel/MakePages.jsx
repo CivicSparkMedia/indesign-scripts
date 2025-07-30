@@ -181,7 +181,12 @@ var processPage = function(pageData, tmplt, outfol, issueDate) {
         alert("Page number population error for page " + pageNum + ": " + e);
     }
 
-    doc.save(File(outfol + "/" + fname + ".indd"));
+    var outputFile = File(outfol + "/" + fname + ".indd");
+    if (!outputFile.exists) {
+        doc.save(outputFile);
+    } else {
+        alert("File '" + fname + ".indd' already exists in the output folder. Skipping.");
+    }
     doc.close(SaveOptions.NO);
 }
 
