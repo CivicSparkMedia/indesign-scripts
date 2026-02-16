@@ -118,6 +118,12 @@ var findReplace = function(story) {
         story
     );
 
+    // Markdown H2 headings: add a paragraph break before and apply "Body subhead" style
+    myChangeGrep(
+        {findWhat: "^## (.+)"},
+        {changeTo: "\\r$1", appliedParagraphStyle: "Body subhead"},
+        story
+    );
 }
 
 /*
